@@ -30,12 +30,12 @@ test('GET /api returns dokploy-manager metadata', async () => {
   assert.ok(body.endpoints['GET /api/applications/:id/logs/runtime?tail=100']);
 });
 
-test('UI HTML uses valid inline handler quoting', async () => {
+test('UI HTML avoids broken inline handlers', async () => {
   const markup = html();
-  assert.match(markup, /onclick='showApp\(" \+ appId \+ "\)'|onclick='showApp\(/);
-  assert.match(markup, /onclick='selectTab\("info"\)'/);
-  assert.doesNotMatch(markup, /onclick="showApp\(''/);
-  assert.doesNotMatch(markup, /onclick="selectTab\('info'\)"/);
+  assert.match(markup, /data-app-id=/);
+  assert.match(markup, /data-tab="info"/);
+  assert.doesNotMatch(markup, /onclick="showApp/);
+  assert.doesNotMatch(markup, /onclick="selectTab/);
 });
 
 test('protected API endpoints are unavailable until manager auth is configured', async () => {

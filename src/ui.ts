@@ -100,8 +100,7 @@ function renderProjects(projects) {
 
     const appHtml = apps.length
       ? apps.map(function(app) {
-          const appId = JSON.stringify(String(app.applicationId || ''));
-          return '<div class="app" onclick=\'showApp(' + appId + ')\'>'
+          return '<div class="app" data-app-id="' + esc(app.applicationId || '') + '">'
             + '<strong>' + esc(app.name || app.appName || app.applicationId) + '</strong>'
             + '<small>' + esc(app.applicationStatus || 'unknown') + (app._env ? ' · ' + esc(app._env) : '') + '</small>'
             + '</div>';
@@ -121,6 +120,11 @@ async function loadProjects() {
   try {
     const projects = await api('/api/projects');
     container.innerHTML = renderProjects(projects);
+    container.querySelectorAll('[data-app-id]').forEach(function(element) {
+      element.addEventListener('click', function() {
+        showApp(element.getAttribute('data-app-id') || '');
+      });
+    });
   } catch (error) {
     container.innerHTML = '<p class="error">' + esc(error.message) + '</p>';
   }
@@ -153,11 +157,11 @@ function showApp(appId) {
   details.innerHTML = '<div>'
     + '<strong>Application</strong><span class="pill">' + esc(appId) + '</span>'
     + '<div class="tabs">'
-    + '<div class="tab active" data-tab="info" onclick=\'selectTab("info")\'>Info</div>'
-    + '<div class="tab" data-tab="deployments" onclick=\'selectTab("deployments")\'>Deployments</div>'
-    + '<div class="tab" data-tab="deploy-log" onclick=\'selectTab("deploy-log")\'>Deploy Log</div>'
-    + '<div class="tab" data-tab="runtime-log" onclick=\'selectTab("runtime-log")\'>Runtime Log</div>'
-    + '<div class="tab" data-tab="env" onclick=\'selectTab("env")\'>Env</div>'
+    + '<div class="tab active" data-tab="info">Info</div>'
+    + '<div class="tab" data-tab="deployments">Deployments</div>'
+    + '<div class="tab" data-tab="deploy-log">Deploy Log</div>'
+    + '<div class="tab" data-tab="runtime-log">Runtime Log</div>'
+    + '<div class="tab" data-tab="env">Env</div>'
     + '</div>'
     + '<div id="tab-info" class="tab-content active" data-tab="info"></div>'
     + '<div id="tab-deployments" class="tab-content" data-tab="deployments"></div>'
@@ -165,6 +169,11 @@ function showApp(appId) {
     + '<div id="tab-runtime-log" class="tab-content" data-tab="runtime-log"></div>'
     + '<div id="tab-env" class="tab-content" data-tab="env"></div>'
     + '</div>';
+  details.querySelectorAll('.tab[data-tab]').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      selectTab(tab.getAttribute('data-tab') || 'info');
+    });
+  });
   selectTab('info');
 }
 
