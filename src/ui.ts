@@ -55,10 +55,43 @@ export function html(): string {
 </main>
 <script>
 const API = window.location.origin;
+const TOKEN_STORAGE_KEY = 'dokploy-manager-token';
 let currentAppId = '';
 
+function tokenInput() {
+  return document.getElementById('token');
+}
+
+function getToken() {
+  const input = tokenInput();
+  return input ? input.value.trim() : '';
+}
+
+function loadSavedToken() {
+  try {
+    const savedToken = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (savedToken && tokenInput()) {
+      tokenInput().value = savedToken;
+    }
+  } catch (error) {
+    console.warn('Unable to read saved token', error);
+  }
+}
+
+function saveToken(token) {
+  try {
+    if (token) {
+      window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    } else {
+      window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+    }
+  } catch (error) {
+    console.warn('Unable to save token', error);
+  }
+}
+
 function headers() {
-  const token = document.getElementById('token').value.trim();
+  const token = getToken();
   const out = { 'Content-Type': 'application/json' };
   if (token) out.Authorization = 'Bearer ' + token;
   return out;
@@ -119,6 +152,7 @@ async function loadProjects() {
   container.innerHTML = '<p class="muted">Loading projects…</p>';
   try {
     const projects = await api('/api/projects');
+    saveToken(getToken());
     container.innerHTML = renderProjects(projects);
     container.querySelectorAll('[data-app-id]').forEach(function(element) {
       element.addEventListener('click', function() {
@@ -207,6 +241,8 @@ function selectTab(name) {
     });
   }
 }
+
+loadSavedToken();
 </script>
 </body>
 </html>`;

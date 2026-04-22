@@ -30,10 +30,14 @@ test('GET /api returns dokploy-manager metadata', async () => {
   assert.ok(body.endpoints['GET /api/applications/:id/logs/runtime?tail=100']);
 });
 
-test('UI HTML avoids broken inline handlers', async () => {
+test('UI HTML avoids broken inline handlers and persists successful tokens locally', async () => {
   const markup = html();
   assert.match(markup, /data-app-id=/);
   assert.match(markup, /data-tab="info"/);
+  assert.match(markup, /TOKEN_STORAGE_KEY = 'dokploy-manager-token'/);
+  assert.match(markup, /window\.localStorage\.setItem\(TOKEN_STORAGE_KEY, token\)/);
+  assert.match(markup, /saveToken\(getToken\(\)\)/);
+  assert.match(markup, /loadSavedToken\(\);/);
   assert.doesNotMatch(markup, /onclick="showApp/);
   assert.doesNotMatch(markup, /onclick="selectTab/);
 });
