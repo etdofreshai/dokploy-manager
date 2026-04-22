@@ -14,6 +14,12 @@ type RuntimeContainer = {
   status?: string;
 };
 
+type DockerInspection = {
+  available: boolean;
+  reason?: string;
+  containers: RuntimeContainer[];
+};
+
 function asRecord(value: unknown): AnyRecord {
   return typeof value === "object" && value !== null ? (value as AnyRecord) : {};
 }
@@ -48,10 +54,10 @@ async function readTextFileIfPresent(path: string | undefined): Promise<string |
   }
 }
 
-async function listDockerContainers(): Promise<RuntimeContainer[]> {
+async function inspectDockerContainers(): Promise<DockerInspection> {
   try {
     const { stdout } = await execFileAsync("docker", ["ps", "-a", "--format", "{{json .}}"]);
-    return stdout
+    const containers = stdout
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean)
@@ -63,8 +69,24 @@ async function listDockerContainers(): Promise<RuntimeContainer[]> {
         status: row.Status || undefined,
       }))
       .filter((container) => container.id && container.name);
-  } catch {
-    return [];
+    return {
+      available: true,
+      containers,
+    };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    const reason = detail.includes("ENOENT")
+      ? "docker-cli-missing"
+      : detail.includes("permission denied")
+        ? "docker-cli-permission-denied"
+        : detail.includes("Cannot connect to the Docker daemon")
+          ? "docker-daemon-unreachable"
+          : "docker-cli-unavailable";
+    return {
+      available: false,
+      reason,
+      containers: [],
+    };
   }
 }
 
@@ -139,16 +161,24 @@ export async function getRuntimeLogs(applicationId: string, rawTail?: string) {
   const deployments = asArray(await getApplicationDeployments(applicationId));
   const latestDeployment = deployments.length ? asRecord(deployments[0]) : undefined;
   const candidates = extractContainerCandidates(application, latestDeployment);
-  const containers = await listDockerContainers();
-  const matchedContainer = findMatchingContainer(containers, candidates);
+  const docker = await inspectDockerContainers();
+  const matchedContainer = findMatchingContainer(docker.containers, candidates);
 
   if (!matchedContainer) {
+    const unavailableMessage = docker.available
+      ? "Runtime logs unavailable. No matching local Docker container was found for this application."
+      : docker.reason === "docker-cli-missing"
+        ? "Runtime logs unavailable because the Docker CLI is not installed in the dokploy-manager container."
+        : docker.reason === "docker-daemon-unreachable"
+          ? "Runtime logs unavailable because the Docker daemon is not reachable from the dokploy-manager container."
+          : docker.reason === "docker-cli-permission-denied"
+            ? "Runtime logs unavailable because the dokploy-manager container does not have permission to talk to Docker."
+            : "Runtime logs unavailable because Docker inspection is not available in the dokploy-manager container.";
     return {
       applicationId,
       tail,
-      source: containers.length ? "docker-cli-no-match" : "docker-cli-unavailable",
-      logs:
-        "Runtime logs unavailable. No matching local Docker container was found for this application. Mount the Docker socket and ensure the service can resolve the target container.",
+      source: docker.available ? "docker-cli-no-match" : (docker.reason || "docker-cli-unavailable"),
+      logs: unavailableMessage,
       candidates,
       container: null,
     };
@@ -178,10 +208,10 @@ export async function getRuntimeLogs(applicationId: string, rawTail?: string) {
 }
 
 export async function listRuntimeContainers(serverId?: string) {
-  const containers = await listDockerContainers();
+  const docker = await inspectDockerContainers();
   return {
-    source: containers.length ? "docker-cli" : "docker-cli-unavailable",
+    source: docker.available ? "docker-cli" : (docker.reason || "docker-cli-unavailable"),
     serverId: serverId || null,
-    containers,
+    containers: docker.containers,
   };
 }
