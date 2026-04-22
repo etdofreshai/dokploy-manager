@@ -100,7 +100,8 @@ function renderProjects(projects) {
 
     const appHtml = apps.length
       ? apps.map(function(app) {
-          return '<div class="app" onclick="showApp(\'' + esc(app.applicationId) + '\')">'
+          const appId = JSON.stringify(String(app.applicationId || ''));
+          return '<div class="app" onclick=\'showApp(' + appId + ')\'>'
             + '<strong>' + esc(app.name || app.appName || app.applicationId) + '</strong>'
             + '<small>' + esc(app.applicationStatus || 'unknown') + (app._env ? ' · ' + esc(app._env) : '') + '</small>'
             + '</div>';
@@ -152,11 +153,11 @@ function showApp(appId) {
   details.innerHTML = '<div>'
     + '<strong>Application</strong><span class="pill">' + esc(appId) + '</span>'
     + '<div class="tabs">'
-    + '<div class="tab active" data-tab="info" onclick="selectTab(\'info\')">Info</div>'
-    + '<div class="tab" data-tab="deployments" onclick="selectTab(\'deployments\')">Deployments</div>'
-    + '<div class="tab" data-tab="deploy-log" onclick="selectTab(\'deploy-log\')">Deploy Log</div>'
-    + '<div class="tab" data-tab="runtime-log" onclick="selectTab(\'runtime-log\')">Runtime Log</div>'
-    + '<div class="tab" data-tab="env" onclick="selectTab(\'env\')">Env</div>'
+    + '<div class="tab active" data-tab="info" onclick=\'selectTab("info")\'>Info</div>'
+    + '<div class="tab" data-tab="deployments" onclick=\'selectTab("deployments")\'>Deployments</div>'
+    + '<div class="tab" data-tab="deploy-log" onclick=\'selectTab("deploy-log")\'>Deploy Log</div>'
+    + '<div class="tab" data-tab="runtime-log" onclick=\'selectTab("runtime-log")\'>Runtime Log</div>'
+    + '<div class="tab" data-tab="env" onclick=\'selectTab("env")\'>Env</div>'
     + '</div>'
     + '<div id="tab-info" class="tab-content active" data-tab="info"></div>'
     + '<div id="tab-deployments" class="tab-content" data-tab="deployments"></div>'

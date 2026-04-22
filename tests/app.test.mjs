@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 const { createApp } = await import('../dist/app.js');
+const { html } = await import('../dist/ui.js');
 
 function getResponseText(response) {
   return response.text();
@@ -27,6 +28,14 @@ test('GET /api returns dokploy-manager metadata', async () => {
   assert.equal(body.version, '1.0.0');
   assert.ok(body.endpoints['GET /api/overview']);
   assert.ok(body.endpoints['GET /api/applications/:id/logs/runtime?tail=100']);
+});
+
+test('UI HTML uses valid inline handler quoting', async () => {
+  const markup = html();
+  assert.match(markup, /onclick='showApp\(" \+ appId \+ "\)'|onclick='showApp\(/);
+  assert.match(markup, /onclick='selectTab\("info"\)'/);
+  assert.doesNotMatch(markup, /onclick="showApp\(''/);
+  assert.doesNotMatch(markup, /onclick="selectTab\('info'\)"/);
 });
 
 test('protected API endpoints are unavailable until manager auth is configured', async () => {
